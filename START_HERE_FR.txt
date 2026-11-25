@@ -1,0 +1,25 @@
+YOUGLITCH SMP 1024 — DEPOT WINDOWS GITHUB ACTIONS
+
+CE QUE FAIT CE DEPOT
+- Configure le projet JUCE avec CMake.
+- Compile séparément le Standalone Windows x64 puis le plugin VST3.
+- Dépose le fichier EXE, le VST3 (si généré) et les symboles PDB dans l'artefact GitHub.
+- Le workflow détecte automatiquement la racine du projet, même si le contenu a été téléversé dans un sous-dossier.
+
+INSTALLATION SUR GITHUB
+1. Télécharge cette archive et extrais-la sur le PC.
+2. Ouvre le dossier extrait.
+3. Tu dois voir CMakeLists.txt, Source, Reference et .github.
+4. Dans GitHub, ouvre le dépôt et choisis Add file > Upload files.
+5. Glisse le CONTENU du dossier extrait. Tu peux aussi glisser le dossier parent : le workflow sait rechercher la racine du projet dans un sous-dossier.
+6. Vérifie que le téléversement contient bien .github/workflows/windows-build.yml. Sur Windows, active Affichage > Afficher > Éléments masqués si nécessaire.
+7. Clique Commit changes.
+8. Ouvre Actions. Le workflow « YouGlitch SMP 1024 - Windows x64 » doit démarrer.
+9. Si la compilation est verte, ouvre l'exécution et télécharge l'artefact « YouGlitch-SMP-1024-Windows-x64 » en bas de page.
+
+IMPORTANT — LIMITES DE VALIDATION
+- Le dépôt contient le code source JUCE/C++, pas un EXE précompilé.
+- GitHub Actions télécharge JUCE 8.0.6 depuis GitHub : le runner doit avoir accès à Internet.
+- Un build vert confirme que les cibles ont été compilées, mais ne garantit pas encore que le logiciel démarre ou fonctionne correctement sur chaque PC.
+- Le code n'a pas pu être compilé ici : aucun environnement Windows/MSVC/JUCE complet n'est disponible dans cette session. Ne considère pas cette archive comme un binaire validé.
+- Si l'EXE plante encore avec 0xc0000005, il faudra exploiter le PDB et un dump Windows du plantage ; le seul build vert ne corrigera pas à lui seul un défaut d'exécution.

@@ -1,0 +1,17 @@
+YOUGLITCH SMP 1024 — CONTROLE STATIQUE DU DEPOT
+
+Controles effectues sur cette archive :
+- Structure ZIP : fichiers directement a la racine, sans dossier parent supplementaire.
+- Presence de CMakeLists.txt et des 8 fichiers source/en-tete attendus.
+- Presence de .github/workflows/windows-build.yml.
+- Workflow relu : detection de racine, configuration CMake, compilation Standalone, compilation VST3, collecte EXE/VST3/PDB et televersement de l'artefact.
+- Le nom de l'artefact dans le README a ete aligne sur le nom du workflow.
+- La variable PowerShell $matches a ete renommee $projectRoots pour eviter le conflit avec la variable automatique $Matches.
+
+Limites importantes :
+- La syntaxe PowerShell n'a pas pu etre executee ici car PowerShell/Windows n'est pas disponible dans cet environnement.
+- La configuration CMake a ete tentee, mais FetchContent n'a pas pu telecharger JUCE 8.0.6 car l'acces DNS a github.com est indisponible ici.
+- Le code C++ n'a donc pas ete compile ni teste dans cet environnement.
+- Une compilation verte sur GitHub ne prouve pas encore que l'EXE demarre : le lancement Windows et le plantage 0xc0000005 restent a diagnostiquer avec l'EXE et le PDB issus du meme build.
+
+Ne pas presenter cette archive comme un binaire final valide : c'est un depot source corrige et controle statiquement.
