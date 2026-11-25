@@ -1,0 +1,81 @@
+name: YouGlitch SMP 1024 - Windows x64
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Locate project root (supports nested upload)
+        id: locate
+        shell: pwsh
+        run: |
+          $candidates = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Filter CMakeLists.txt -File -Recurse |
+            Where-Object {
+              Test-Path (Join-Path $_.DirectoryName 'Source/PluginProcessor.cpp') -PathType Leaf -and
+              Test-Path (Join-Path $_.DirectoryName 'Source/PluginProcessor.h') -PathType Leaf -and
+              Test-Path (Join-Path $_.DirectoryName 'Source/PluginEditor.cpp') -PathType Leaf
+            }
+          if ($candidates.Count -ne 1) {
+            Write-Host 'CMakeLists.txt candidats trouvés:'
+            $candidates | ForEach-Object { Write-Host $_.FullName }
+            throw "Impossible d'identifier une racine unique du projet. Candidats: $($candidates.Count)"
+          }
+          $root = $candidates[0].DirectoryName
+          "project_root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Racine du projet: $root"
+          Get-ChildItem -Force $root | Format-Table Name,Mode
+
+      - name: Configure CMake and download JUCE
+        shell: pwsh
+        run: |
+          cmake --version
+          cmake -S "${{ steps.locate.outputs.project_root }}" -B "${{ steps.locate.outputs.project_root }}/build" -A x64 -DCMAKE_BUILD_TYPE=Release -DJUCE_BUILD_EXAMPLES=OFF -DJUCE_BUILD_EXTRAS=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build Standalone
+        shell: pwsh
+        run: |
+          cmake --build "${{ steps.locate.outputs.project_root }}/build" --config Release --target YouGlitchSMP1024_Standalone --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build VST3
+        shell: pwsh
+        run: |
+          cmake --build "${{ steps.locate.outputs.project_root }}/build" --config Release --target YouGlitchSMP1024_VST3 --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Collect deliverables and debug symbols
+        shell: pwsh
+        run: |
+          $root = '${{ steps.locate.outputs.project_root }}'
+          $build = Join-Path $root 'build'
+          $out = Join-Path $root 'deliverables'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $exe = Get-ChildItem -Path $build -Filter 'YouGlitch SMP 1024.exe' -File -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'EXE Standalone introuvable après compilation.' }
+          Copy-Item $exe.FullName (Join-Path $out $exe.Name) -Force
+          $vst = Get-ChildItem -Path $build -Directory -Filter '*.vst3' -Recurse | Select-Object -First 1
+          if ($vst) { Copy-Item $vst.FullName (Join-Path $out $vst.Name) -Recurse -Force }
+          Get-ChildItem -Path $build -Filter '*.pdb' -File -Recurse | ForEach-Object { Copy-Item $_.FullName $out -Force }
+          Get-ChildItem -Force $out | Format-Table Name,Length
+          if (-not (Test-Path (Join-Path $out 'YouGlitch SMP 1024.exe'))) { throw "Le binaire Standalone n'a pas ete collecte." }
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: YouGlitch-SMP-1024-Windows-x64
+          path: ${{ steps.locate.outputs.project_root }}/deliverables/**
+          if-no-files-found: error
+          retention-days: 14
